@@ -97,15 +97,24 @@ reg [1:0] w10;
 reg [1:0] w32;
 reg [3:0] win3210;
 
+reg [3:0] winSequentialAccess;
+reg [3:0] winPortSequentialExtTmp;
+
 always @(*) begin
-   w10 = findWin(last10, req[1:0]);
-   w32 = findWin(last32, req[3:2]);
-   winner = findWin(last, {|req[3:2], |req[1:0]});
-   casez (winner)
-      2'b01:   win3210 = {2'b00, w10};
-      2'b10:   win3210 = {w32, 2'b00};
-      default: win3210 = 4'b0000;
-   endcase
+   winPortSequentialExtTmp = (winPort << 1);
+   winSequentialAccess = !winPort ? 4'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 4'b1 ;
+   if(winSequentialAccess & req) 
+        win3210 = winSequentialAccess;
+   else begin
+       w10 = findWin(last10, req[1:0]);
+       w32 = findWin(last32, req[3:2]);
+       winner = findWin(last, {|req[3:2], |req[1:0]});
+       casez (winner)
+          2'b01:   win3210 = {2'b00, w10};
+          2'b10:   win3210 = {w32, 2'b00};
+          default: win3210 = 4'b0000;
+       endcase
+    end
 end
 
 always @(posedge clk) if (rst) begin

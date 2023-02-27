@@ -104,15 +104,25 @@ reg [1:0] w10;
 reg [1:0] w32;
 reg [3:0] win3210;
 
+reg [3:0] lastWinPort; //由于ｔｒｒｄ＝１０ｎｓ，因此两个有效的ｗｉｎＰｏｒｔ值之间存在一个０值．导致ｗｉｎＳｅｑｕｅｎｔｉａｌＡｃｃｅｓｓ恒等于０．因此需要记录上次的ｗｉｎＰｏｒｔ
+reg [3:0] winSequentialAccess;
+reg [3:0] winPortSequentialExtTmp;
+
 always @(*) begin
-   w10 = findWin(last10, req[1:0]);
-   w32 = findWin(last32, req[3:2]);
-   winner = findWin(last, {|req[3:2], |req[1:0]});
-   casez (winner)
-      2'b01:   win3210 = {2'b00, w10};
-      2'b10:   win3210 = {w32, 2'b00};
-      default: win3210 = 4'b0000;
-   endcase
+   winPortSequentialExtTmp = (lastWinPort << 1);
+   winSequentialAccess = !lastWinPort ? 4'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 4'b1 ;
+   if(winSequentialAccess & req) 
+        win3210 = winSequentialAccess;
+   else begin
+       w10 = findWin(last10, req[1:0]);
+       w32 = findWin(last32, req[3:2]);
+       winner = findWin(last, {|req[3:2], |req[1:0]});
+       casez (winner)
+          2'b01:   win3210 = {2'b00, w10};
+          2'b10:   win3210 = {w32, 2'b00};
+          default: win3210 = 4'b0000;
+       endcase
+    end
 end
 
 wire winAct_nxt = | req[3:0];
@@ -140,21 +150,25 @@ end else begin:arbing
          last <= #TCQ 1'b0;
          last10 <= #TCQ 1'b0;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       4'bzz1z: begin
          last <= #TCQ 1'b0;
          last10 <= #TCQ 1'b1;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       4'bz1zz: begin
          last <= #TCQ 1'b1;
          last32 <= #TCQ 1'b0;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       4'b1zzz: begin
          last <= #TCQ 1'b1;
          last32 <= #TCQ 1'b1;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       default: winPort <= #TCQ 4'b0000;
    endcase
