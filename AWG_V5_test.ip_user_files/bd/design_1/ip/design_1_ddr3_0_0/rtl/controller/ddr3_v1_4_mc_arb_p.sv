@@ -97,12 +97,13 @@ reg [1:0] w10;
 reg [1:0] w32;
 reg [3:0] win3210;
 
+reg [3:0] lastWinPort; 
 reg [3:0] winSequentialAccess;
 reg [3:0] winPortSequentialExtTmp;
 
 always @(*) begin
-   winPortSequentialExtTmp = (winPort << 1);
-   winSequentialAccess = !winPort ? 4'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 4'b1 ;
+   winPortSequentialExtTmp = (lastWinPort << 1);
+   winSequentialAccess = !lastWinPort ? 4'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 4'b1 ;
    if(winSequentialAccess & req) 
         win3210 = winSequentialAccess;
    else begin
@@ -128,21 +129,25 @@ end else begin:arbing
          last <= #TCQ 1'b0;
          last10 <= #TCQ 1'b0;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       4'bzz1z: begin
          last <= #TCQ 1'b0;
          last10 <= #TCQ 1'b1;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       4'bz1zz: begin
          last <= #TCQ 1'b1;
          last32 <= #TCQ 1'b0;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       4'b1zzz: begin
          last <= #TCQ 1'b1;
          last32 <= #TCQ 1'b1;
          winPort <= #TCQ win3210;
+         lastWinPort <= #TCQ win3210;
       end
       default: winPort <= #TCQ 4'b0000;
    endcase
