@@ -105,9 +105,9 @@ reg [1:0] win7654;
 reg [1:0] winner;
 reg [7:0] win76543210;
 
-reg [3:0] lastWinPort; 
-reg [3:0] winSequentialAccess;
-reg [3:0] winPortSequentialExtTmp;
+reg [7:0] lastWinPort; 
+reg [7:0] winSequentialAccess;
+reg [7:0] winPortSequentialExtTmp;
 
 always @(*) begin
    winPortSequentialExtTmp = (lastWinPort << 1);
