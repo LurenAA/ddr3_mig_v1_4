@@ -91,13 +91,13 @@ module ddr3_v1_4_16_mc_ecc # (parameter
     // error address
    ,input      [1:0]                        winPortEncC
    ,input                                   non_per_rd_cas
-   ,input      [4*ABITS-1:0]                cmdRow
-   ,input      [4*COLBITS-1:0]              cmdCol
-   ,input      [3:0]                        cmdRmw
-   ,input      [RKBITS*4-1:0]               cmdRank
-   ,input      [4*LR_WIDTH-1:0]             cmdLRank
-   ,input      [7:0]                        cmdBank
-   ,input      [7:0]                        cmdGroup
+   ,input      [8*ABITS-1:0]                cmdRow
+   ,input      [8*COLBITS-1:0]              cmdCol
+   ,input      [7:0]                        cmdRmw
+   ,input      [RKBITS*8-1:0]               cmdRank
+   ,input      [8*LR_WIDTH-1:0]             cmdLRank
+   ,input      [15:0]                        cmdBank
+   ,input      [15:0]                        cmdGroup
     // NI write data
    ,input      [PAYLOAD_WIDTH*8-1:0]        wr_data_ni2mc
    ,input      [PAYLOAD_DM_WIDTH*8-1:0]     wr_data_mask_ni2mc

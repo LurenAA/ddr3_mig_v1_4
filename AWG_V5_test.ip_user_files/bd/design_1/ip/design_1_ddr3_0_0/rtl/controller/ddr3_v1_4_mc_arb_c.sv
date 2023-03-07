@@ -76,8 +76,8 @@ module ddr3_v1_4_16_mc_arb_c #(parameter
     input        clk
    ,input        rst
 
-   ,output reg [1:0] winPortEnc
-   ,output reg [3:0] winPort
+   ,output reg [2:0] winPortEnc
+   ,output reg [7:0] winPort
    ,output reg       winRead
    ,output reg       winWrite
    ,output reg [1:0] win_bank_cas
@@ -85,21 +85,21 @@ module ddr3_v1_4_16_mc_arb_c #(parameter
    ,output     [LR_WIDTH-1:0] win_l_rank_cas
    ,output reg [RKBITS-1:0] win_rank_cas
 
-   ,input  [3:0] cmdRmw
-   ,input  [3:0] read
-   ,input  [3:0] wrte
+   ,input  [7:0] cmdRmw
+   ,input  [7:0] read
+   ,input  [7:0] wrte
    ,input        tranSent
    ,input        useAdr
-   ,input  [3:0] accept
+   ,input  [7:0] accept
    ,input        per_rd_accept
 
-   ,input  [7:0] cmd_bank_cas
-   ,input  [7:0] cmd_group_cas
-   ,input  [4*LR_WIDTH-1:0] cmd_l_rank_cas
-   ,input  [RKBITS*4-1:0] cmd_rank_cas
-   ,input  [RKBITS*4-1:0] cmdRank
-   ,input  [RKBITS*4-1:0] cmdRankP
-   ,input  [3:0] preReqM
+   ,input  [15:0] cmd_bank_cas
+   ,input  [15:0] cmd_group_cas
+   ,input  [8*LR_WIDTH-1:0] cmd_l_rank_cas
+   ,input  [RKBITS*8-1:0] cmd_rank_cas
+   ,input  [RKBITS*8-1:0] cmdRank
+   ,input  [RKBITS*8-1:0] cmdRankP
+   ,input  [7:0] preReqM
 );
 
 localparam STRICT_FULL_THRESH     = 20;
@@ -122,10 +122,10 @@ reg       last;
 reg       last10;
 reg       last32;
 reg       rdSlot;
-reg [3:0] reqs; // wire-reg
+reg [7:0] reqs; // wire-reg
 reg [7:0] slotCnt;
-reg [3:0] readM;
-reg [3:0] wrteM;
+reg [7:0] readM;
+reg [7:0] wrteM;
 reg [3:0] preMask;
 
 // ------------------------------------------------------------
@@ -134,14 +134,14 @@ reg [3:0] preMask;
 // Each time a txn is accepted into a Group FSM, push the 4 bit
 // Group accept vector into a FIFO.  The FIFO output will be
 // used to determine which Group is allowed to issue a CAS.
-reg  [3:0] strict_fifo[STRICT_FIFO_DEPTH-1:0];
-reg  [3:0] strict_fifo_nxt[STRICT_FIFO_DEPTH-1:0];
+reg  [7:0] strict_fifo[STRICT_FIFO_DEPTH-1:0];
+reg  [7:0] strict_fifo_nxt[STRICT_FIFO_DEPTH-1:0];
 reg  [STRICT_FIFO_PTR_WIDTH-1:0] strict_rptr;
 reg  [STRICT_FIFO_PTR_WIDTH-1:0] strict_wptr;
 reg  [STRICT_FIFO_PTR_WIDTH-1:0] strict_wptr2;
 reg  [LR_WIDTH-1:0] win_l_rank_cas_int;
-wire [3:0] win3210_strict;
-wire [3:0] win3210_strict_rptr_en;
+wire [7:0] win3210_strict;
+wire [7:0] win3210_strict_rptr_en;
 
 // Pop the strict order FIFO each time a CAS issues except when its
 // an underfill read.
@@ -152,23 +152,23 @@ wire [STRICT_FIFO_PTR_WIDTH-1:0] strict_rptr_nxt     =  strict_rptr[STRICT_FIFO_
 // The order FIFO write port needs to be able to push 2 transactions at the same time.
 // Group 0 can accept a periodic read on the same cycle that another Group can
 // accept an NI txn.  The periodic read will be ordered after the NI txn.
-wire       strict_wptr_en      =  ( ( | accept ) & useAdr ) | per_rd_accept;
-wire       strict_wptr_en2     =  ( ( | accept ) & useAdr ) & per_rd_accept;
-wire       strict_data_in_per  = ~( ( | accept ) & useAdr ) & per_rd_accept;
+wire       strict_wptr_en      =  ( ( | accept ) & useAdr ) | per_rd_accept;     // txn | per
+wire       strict_wptr_en2     =  ( ( | accept ) & useAdr ) & per_rd_accept;     // txn & per 
+wire       strict_data_in_per  = ~( ( | accept ) & useAdr ) & per_rd_accept;     //~txn & per 
 wire [STRICT_FIFO_PTR_WIDTH-1:0] strict_wptr_nxt     =  strict_wptr[STRICT_FIFO_PTR_WIDTH-1:0]                     // spyglass disable W164a
                                                         + { { STRICT_FIFO_PTR_WIDTH-2 { 1'b0 } }, strict_wptr_en2, ~strict_wptr_en2 & strict_wptr_en };
 wire [STRICT_FIFO_PTR_WIDTH-1:0] strict_wptr2_nxt    =  strict_wptr_nxt[STRICT_FIFO_PTR_WIDTH-1:0] + { { STRICT_FIFO_PTR_WIDTH-1 { 1'b0 } }, 1'b1 };
-wire [3:0] strict_fifo_data_in =  strict_data_in_per ? 4'b1 : accept;
+wire [7:0] strict_fifo_data_in =  strict_data_in_per ? 8'b1 : accept;
 
 always @(*) begin
   strict_fifo_nxt = strict_fifo;
   strict_fifo_nxt[ strict_wptr  ] = strict_wptr_en  ? strict_fifo_data_in : strict_fifo[ strict_wptr  ];
-  strict_fifo_nxt[ strict_wptr2 ] = strict_wptr_en2 ?                4'b1 : strict_fifo[ strict_wptr2 ];
+  strict_fifo_nxt[ strict_wptr2 ] = strict_wptr_en2 ?                8'b1 : strict_fifo[ strict_wptr2 ];
 end
 
 // Select strict arbitration winner based on order FIFO and available CAS requests.
 // Pop the order FIFO based on the winner unless it is an underfill read.
-wire [3:0] strict_fifo_output     = strict_fifo[ strict_rptr ];
+wire [7:0] strict_fifo_output     = strict_fifo[ strict_rptr ];
 assign     win3210_strict         = strict_fifo_output & ( readM | wrteM );
 assign     win3210_strict_rptr_en = ( strict_fifo_output & ~cmdRmw & readM ) | ( strict_fifo_output & wrteM );
 
@@ -193,6 +193,10 @@ always @(*) begin
    if (preReqM[1]) preMask[cmdRankP[RKBITS*2-1:RKBITS*1]] = 1'b1;
    if (preReqM[2]) preMask[cmdRankP[RKBITS*3-1:RKBITS*2]] = 1'b1;
    if (preReqM[3]) preMask[cmdRankP[RKBITS*4-1:RKBITS*3]] = 1'b1;
+   if (preReqM[4]) preMask[cmdRankP[RKBITS*5-1:RKBITS*4]] = 1'b1;
+   if (preReqM[5]) preMask[cmdRankP[RKBITS*6-1:RKBITS*5]] = 1'b1;
+   if (preReqM[6]) preMask[cmdRankP[RKBITS*7-1:RKBITS*6]] = 1'b1;
+   if (preReqM[7]) preMask[cmdRankP[RKBITS*8-1:RKBITS*7]] = 1'b1;
 end
 
 always @(*) begin
@@ -201,6 +205,10 @@ always @(*) begin
    if (preMask[cmdRank[RKBITS*2-1:RKBITS*1]]) readM[1] = 1'b0;
    if (preMask[cmdRank[RKBITS*3-1:RKBITS*2]]) readM[2] = 1'b0;
    if (preMask[cmdRank[RKBITS*4-1:RKBITS*3]]) readM[3] = 1'b0;
+   if (preMask[cmdRank[RKBITS*5-1:RKBITS*4]]) readM[4] = 1'b0;
+   if (preMask[cmdRank[RKBITS*6-1:RKBITS*5]]) readM[5] = 1'b0;
+   if (preMask[cmdRank[RKBITS*7-1:RKBITS*6]]) readM[6] = 1'b0;
+   if (preMask[cmdRank[RKBITS*8-1:RKBITS*7]]) readM[7] = 1'b0;
 end
 
 always @(*) begin
@@ -209,6 +217,10 @@ always @(*) begin
    if (preMask[cmdRank[RKBITS*2-1:RKBITS*1]]) wrteM[1] = 1'b0;
    if (preMask[cmdRank[RKBITS*3-1:RKBITS*2]]) wrteM[2] = 1'b0;
    if (preMask[cmdRank[RKBITS*4-1:RKBITS*3]]) wrteM[3] = 1'b0;
+   if (preMask[cmdRank[RKBITS*5-1:RKBITS*4]]) wrteM[4] = 1'b0;
+   if (preMask[cmdRank[RKBITS*6-1:RKBITS*5]]) wrteM[5] = 1'b0;
+   if (preMask[cmdRank[RKBITS*7-1:RKBITS*6]]) wrteM[6] = 1'b0;
+   if (preMask[cmdRank[RKBITS*8-1:RKBITS*7]]) wrteM[7] = 1'b0;
 end
 
 always @(*) begin
@@ -237,7 +249,7 @@ always @(*) begin
 end
 
 // Select arbitration winner based on ordering mode
-wire [3:0] win3210 = ( ORDERING == "STRICT" ) ? win3210_strict : win3210_reorder;
+wire [7:0] win76543210 = ( ORDERING == "STRICT" ) ? win3210_strict : win3210_reorder;
 
 always @(posedge clk) if (rst) begin
    last <= 1'b0;
@@ -245,8 +257,8 @@ always @(posedge clk) if (rst) begin
    last32 <= 1'b0;
    rdSlot <= 1'b0;
    slotCnt <= 'b0;
-   winPortEnc <= 2'b0;
-   winPort <= 4'b0;
+   winPortEnc <= 3'b0;
+   winPort <= 8'b0;
    winRead <= 1'b0;
    winWrite <= 1'b0;
    win_bank_cas  <= #TCQ 2'b0;
@@ -258,54 +270,98 @@ end else begin:arbing
    reg [7:0] nSlotCnt;
    nRdSlot = rdSlot;
    nSlotCnt = slotCnt - 1'b1;
-   if (tranSent) casez (win3210)
-      4'bzzz1: begin
+   if (tranSent) casez (win76543210)
+      8'bzzzzzzz1: begin
          last <= #TCQ 1'b0;
          last10 <= #TCQ 1'b0;
-         winPortEnc <= #TCQ 2'd0;
-         winPort <= #TCQ win3210;
+         winPortEnc <= #TCQ 3'd0;
+         winPort <= #TCQ win76543210;
          {winRead, winWrite} <= #TCQ {readM[0], wrteM[0]};
          win_bank_cas        <= #TCQ cmd_bank_cas[1:0];
          win_group_cas       <= #TCQ cmd_group_cas[1:0];
          win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[0*LR_WIDTH+:LR_WIDTH];
          win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*1-1:RKBITS*0];
       end
-      4'bzz1z: begin
+      8'bzzzzzz1z: begin
          last <= #TCQ 1'b0;
          last10 <= #TCQ 1'b1;
-         winPortEnc <= #TCQ 2'd1;
-         winPort <= #TCQ win3210;
+         winPortEnc <= #TCQ 3'd1;
+         winPort <= #TCQ win76543210;
          {winRead, winWrite} <= #TCQ {readM[1], wrteM[1]};
          win_bank_cas        <= #TCQ cmd_bank_cas[3:2];
          win_group_cas       <= #TCQ cmd_group_cas[3:2];
          win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[1*LR_WIDTH+:LR_WIDTH];
          win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*2-1:RKBITS*1];
       end
-      4'bz1zz: begin
+      8'bzzzzz1zz: begin
          last <= #TCQ 1'b1;
          last32 <= #TCQ 1'b0;
-         winPortEnc <= #TCQ 2'd2;
-         winPort <= #TCQ win3210;
+         winPortEnc <= #TCQ 3'd2;
+         winPort <= #TCQ win76543210;
          {winRead, winWrite} <= #TCQ {readM[2], wrteM[2]};
          win_bank_cas        <= #TCQ cmd_bank_cas[5:4];
          win_group_cas       <= #TCQ cmd_group_cas[5:4];
          win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[2*LR_WIDTH+:LR_WIDTH];
          win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*3-1:RKBITS*2];
       end
-      4'b1zzz: begin
+      8'bzzzz1zzz: begin
          last <= #TCQ 1'b1;
          last32 <= #TCQ 1'b1;
-         winPortEnc <= #TCQ 2'd3;
-         winPort <= #TCQ win3210;
+         winPortEnc <= #TCQ 3'd3;
+         winPort <= #TCQ win76543210;
          {winRead, winWrite} <= #TCQ {readM[3], wrteM[3]};
          win_bank_cas        <= #TCQ cmd_bank_cas[7:6];
          win_group_cas       <= #TCQ cmd_group_cas[7:6];
          win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[3*LR_WIDTH+:LR_WIDTH];
          win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*4-1:RKBITS*3];
       end
+      8'bzzz1zzzz: begin
+         last <= #TCQ 1'b1;
+         last32 <= #TCQ 1'b1;
+         winPortEnc <= #TCQ 3'd4;
+         winPort <= #TCQ win76543210;
+         {winRead, winWrite} <= #TCQ {readM[4], wrteM[4]};
+         win_bank_cas        <= #TCQ cmd_bank_cas[9:8];
+         win_group_cas       <= #TCQ cmd_group_cas[9:8];
+         win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[4*LR_WIDTH+:LR_WIDTH];
+         win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*5-1:RKBITS*4];
+      end
+      8'bzz1zzzzz: begin
+         last <= #TCQ 1'b1;
+         last32 <= #TCQ 1'b1;
+         winPortEnc <= #TCQ 3'd5;
+         winPort <= #TCQ win76543210;
+         {winRead, winWrite} <= #TCQ {readM[5], wrteM[5]};
+         win_bank_cas        <= #TCQ cmd_bank_cas[11:10];
+         win_group_cas       <= #TCQ cmd_group_cas[11:10];
+         win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[5*LR_WIDTH+:LR_WIDTH];
+         win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*6-1:RKBITS*5];
+      end
+      8'bz1zzzzzz: begin
+         last <= #TCQ 1'b1;
+         last32 <= #TCQ 1'b1;
+         winPortEnc <= #TCQ 3'd6;
+         winPort <= #TCQ win76543210;
+         {winRead, winWrite} <= #TCQ {readM[6], wrteM[6]};
+         win_bank_cas        <= #TCQ cmd_bank_cas[13:12];
+         win_group_cas       <= #TCQ cmd_group_cas[13:12];
+         win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[6*LR_WIDTH+:LR_WIDTH];
+         win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*7-1:RKBITS*6];
+      end
+      8'b1zzzzzzz: begin
+         last <= #TCQ 1'b1;
+         last32 <= #TCQ 1'b1;
+         winPortEnc <= #TCQ 3'd7;
+         winPort <= #TCQ win76543210;
+         {winRead, winWrite} <= #TCQ {readM[7], wrteM[7]};
+         win_bank_cas        <= #TCQ cmd_bank_cas[15:14];
+         win_group_cas       <= #TCQ cmd_group_cas[15:14];
+         win_l_rank_cas_int  <= #TCQ cmd_l_rank_cas[7*LR_WIDTH+:LR_WIDTH];
+         win_rank_cas        <= #TCQ cmd_rank_cas[RKBITS*8-1:RKBITS*7];
+      end
       default:begin
-         winPortEnc <= #TCQ 2'd0;
-         winPort <= #TCQ 4'b0000;
+         winPortEnc <= #TCQ 3'd0;
+         winPort <= #TCQ 8'b0000;
          {winRead, winWrite} <= #TCQ 2'b0;
          win_bank_cas        <= #TCQ 2'b0;
          win_group_cas       <= #TCQ 2'b0;

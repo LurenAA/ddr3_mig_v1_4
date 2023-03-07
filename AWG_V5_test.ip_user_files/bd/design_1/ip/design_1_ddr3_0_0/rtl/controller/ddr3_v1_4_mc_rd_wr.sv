@@ -84,21 +84,21 @@ module ddr3_v1_4_16_mc_rd_wr #(parameter
 
    ,output     readMode
 
-   ,output reg [3:0] rdReqT
-   ,output reg [3:0] wrReqT
+   ,output reg [7:0] rdReqT
+   ,output reg [7:0] wrReqT
 
-   ,input [7:0] cmdGroup
-   ,input [4*LR_WIDTH-1:0] cmdLRank
-   ,input [RKBITS*4-1:0] cmdRank
+   ,input [15:0] cmdGroup
+   ,input [8*LR_WIDTH-1:0] cmdLRank
+   ,input [RKBITS*8-1:0] cmdRank
    ,input       rdCAS
-   ,input [3:0] rdReq
+   ,input [7:0] rdReq
    ,input [1:0] winGroup
    ,input [LR_WIDTH-1:0] winLRank
-   ,input [3:0] winPort
+   ,input [7:0] winPort
    ,input [RKBITS-1:0] winRank
    ,input       wrCAS
    ,input       casSlot2
-   ,input [3:0] wrReq
+   ,input [7:0] wrReq
    ,input [5:0] tCWL
 );
 
@@ -111,20 +111,20 @@ assign readMode = '0;
 // Starvation signals
 reg block_reads;
 reg block_writes;
-reg [3:0] read_req_starve;
-reg [3:0] read_req_starve_nxt;
-reg [STARVE_COUNT_WIDTH-1:0] read_req_starve_count[3:0];
-reg [STARVE_COUNT_WIDTH-1:0] read_req_starve_count_nxt[3:0];
-reg [3:0] write_req_starve;
-reg [3:0] write_req_starve_nxt;
-reg [STARVE_COUNT_WIDTH-1:0] write_req_starve_count[3:0];
-reg [STARVE_COUNT_WIDTH-1:0] write_req_starve_count_nxt[3:0];
-reg [3:0] read_req_ff;
-reg [3:0] write_req_ff;
+reg [7:0] read_req_starve;
+reg [7:0] read_req_starve_nxt;
+reg [STARVE_COUNT_WIDTH-1:0] read_req_starve_count[7:0];
+reg [STARVE_COUNT_WIDTH-1:0] read_req_starve_count_nxt[7:0];
+reg [7:0] write_req_starve;
+reg [7:0] write_req_starve_nxt;
+reg [STARVE_COUNT_WIDTH-1:0] write_req_starve_count[7:0];
+reg [STARVE_COUNT_WIDTH-1:0] write_req_starve_count_nxt[7:0];
+reg [7:0] read_req_ff;
+reg [7:0] write_req_ff;
 
 // Increment or reset saturating counters to track forward progress of each group FSM.
 always @(*) begin
- for (g_index = 0; g_index < 4; g_index = g_index + 1) begin
+ for (g_index = 0; g_index < 8; g_index = g_index + 1) begin
    read_req_starve_count_nxt[g_index]  = read_req_ff[g_index]
                                        ? ( read_req_starve_count[g_index]  + { { STARVE_COUNT_WIDTH-1 { 1'b0 } }, ~read_req_starve[g_index] } )
                                        : '0;
@@ -136,7 +136,7 @@ end
 
 // Check which FSM counter has saturated due to starvation.
 always @(*) begin
- for (g_index = 0; g_index < 4; g_index = g_index + 1) begin
+ for (g_index = 0; g_index < 8; g_index = g_index + 1) begin
    read_req_starve_nxt[g_index]  = & read_req_starve_count_nxt[g_index];
    write_req_starve_nxt[g_index] = & write_req_starve_count_nxt[g_index];
  end
@@ -145,12 +145,12 @@ end
 // Block based on starvation bits.
 wire block_reads_nxt  = | write_req_starve;
 wire block_writes_nxt = | read_req_starve;
-wire [3:0] rdReq_starve = STARVATION_EN ? ( rdReq & ~{ 4 {  block_reads } } ) : rdReq;
-wire [3:0] wrReq_starve = STARVATION_EN ? ( wrReq & ~{ 4 { block_writes } } ) : wrReq;
+wire [7:0] rdReq_starve = STARVATION_EN ? ( rdReq & ~{ 8 {  block_reads } } ) : rdReq;
+wire [7:0] wrReq_starve = STARVATION_EN ? ( wrReq & ~{ 8 { block_writes } } ) : wrReq;
 
 // Clear all starvation counters if reads and writes are starved at the same time.  This would cause deadlock.
-wire [3:0] read_req_nxt  = rdReq & ~{ 4 { block_reads & block_writes } };
-wire [3:0] write_req_nxt = wrReq & ~{ 4 { block_reads & block_writes } };
+wire [7:0] read_req_nxt  = rdReq & ~{ 8 { block_reads & block_writes } };
+wire [7:0] write_req_nxt = wrReq & ~{ 8 { block_reads & block_writes } };
 
 
 
@@ -188,7 +188,7 @@ endgenerate
 
 
 always @(*) begin
-  for (i = 0; i <= 3; i = i + 1) begin 
+  for (i = 0; i <= 7; i = i + 1) begin 
     if (rdReq_starve[i]) begin:chkR
       if (S_HEIGHT > 1) begin
         if (prevGrW[cmdRank[i*RKBITS+:RKBITS]] == cmdGroup[i*2+:2] & prevLRW[cmdRank[i*RKBITS+:RKBITS]] == cmdLRank[i*LR_WIDTH+:LR_WIDTH])
@@ -227,7 +227,7 @@ end else begin
    end
 end
 
-always @(*) for (i = 0; i <= 3; i = i + 1) if (wrReq_starve[i]) begin:chkW
+always @(*) for (i = 0; i <= 7; i = i + 1) if (wrReq_starve[i]) begin:chkW
    wrReqT[i] = rtw_ok;
 end else wrReqT[i] = 1'b0;
 
@@ -239,8 +239,8 @@ always @(posedge clk) if (rst) begin
   block_writes             <= #TCQ '0;
   write_req_ff             <= #TCQ '0;
   write_req_starve         <= #TCQ '0;
-  for (g_index = 0; g_index < 4; g_index = g_index + 1) read_req_starve_count[g_index]  <= #TCQ '0;
-  for (g_index = 0; g_index < 4; g_index = g_index + 1) write_req_starve_count[g_index] <= #TCQ '0;
+  for (g_index = 0; g_index < 8; g_index = g_index + 1) read_req_starve_count[g_index]  <= #TCQ '0;
+  for (g_index = 0; g_index < 8; g_index = g_index + 1) write_req_starve_count[g_index] <= #TCQ '0;
 end else begin
   block_reads              <= #TCQ block_reads_nxt;
   read_req_ff              <= #TCQ read_req_nxt;
@@ -248,8 +248,8 @@ end else begin
   block_writes             <= #TCQ block_writes_nxt;
   write_req_ff             <= #TCQ write_req_nxt;
   write_req_starve         <= #TCQ write_req_starve_nxt;
-  for (g_index = 0; g_index < 4; g_index = g_index + 1) read_req_starve_count[g_index]  <= #TCQ read_req_starve_count_nxt[g_index];
-  for (g_index = 0; g_index < 4; g_index = g_index + 1) write_req_starve_count[g_index] <= #TCQ write_req_starve_count_nxt[g_index];
+  for (g_index = 0; g_index < 8; g_index = g_index + 1) read_req_starve_count[g_index]  <= #TCQ read_req_starve_count_nxt[g_index];
+  for (g_index = 0; g_index < 8; g_index = g_index + 1) write_req_starve_count[g_index] <= #TCQ write_req_starve_count_nxt[g_index];
 end
 
 //synopsys translate_off

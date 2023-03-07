@@ -64,6 +64,7 @@
 //*****************************************************************************
 
 `timescale 1ns/100ps
+`include "/home/txt/xgb/AWG_V5_test/AWG_V5_test.ip_user_files/bd/design_1/ip/design_1_ddr3_0_0/rtl/controller/ddr3_v1_4_mc_act_rank.sv"
 
 module ddr3_v1_4_16_mc_act_timer #(parameter
     tFAW   = 500
@@ -82,15 +83,16 @@ module ddr3_v1_4_16_mc_act_timer #(parameter
     input       clk
    ,input       rst
 
-   ,output [3:0] actReqT
+   ,output [7:0] actReqT // => mc_arb_a input [7:0] req 
 
-   ,input [3:0] actReq
-   ,input [RKBITS*4-1:0] cmdRank
-   ,input [4*LR_WIDTH-1:0] cmdLRank
-   ,input [3:0] winPort
+   ,input [7:0] actReq
+   ,input [RKBITS*8-1:0] cmdRank
+   ,input [8*LR_WIDTH-1:0] cmdLRank
+   ,input [7:0] winPort
+
    ,input [RKBITS-1:0] winRank
    ,input [LR_WIDTH-1:0] winLRank
-   ,input [3:0] act_winPort_nxt
+   ,input [7:0] act_winPort_nxt
    ,input [RANK_SLAB-1:0] act_rank_update
 );
 
@@ -98,15 +100,15 @@ integer i, j;
 
 localparam TWO_GROUP_DDR4 = ( ( BGBITS == 1 ) & ( MEM == "DDR4" ) ) ? "TRUE" : "FALSE";
 
-wire [3:0] rrdOK[0:RANK_SLAB-1];
+wire [7:0] rrdOK[0:RANK_SLAB-1];
 wire [RANK_SLAB-1:0] fawOK;
 
 generate
 if (RANK_SLAB == 4) begin: aReqT_4R
-assign actReqT =   ( rrdOK[0] & { 4 { fawOK[0] } } )
-                 | ( rrdOK[1] & { 4 { fawOK[1] } } )
-                 | ( rrdOK[2] & { 4 { fawOK[2] } } )
-                 | ( rrdOK[3] & { 4 { fawOK[3] } } );
+assign actReqT =   ( rrdOK[0] & { 8 { fawOK[0] } } )
+                 | ( rrdOK[1] & { 8 { fawOK[1] } } )
+                 | ( rrdOK[2] & { 8 { fawOK[2] } } )
+                 | ( rrdOK[3] & { 8 { fawOK[3] } } );
 end else begin:aReqT_8R
 assign actReqT =   ( rrdOK[0] & { 4 { fawOK[0] } } )
                  | ( rrdOK[1] & { 4 { fawOK[1] } } )
@@ -122,30 +124,46 @@ endgenerate
 reg [RANK_SLAB-1:0] update;
 reg [1:0] winGr;
 reg [1:0] winGr2;
-reg [3:0] actReqs[0:RANK_SLAB-1];
+reg [7:0] actReqs[0:RANK_SLAB-1];
 reg [LR_WIDTH-1:0] winLRank_nxt;
 
 always @(*) begin
-   for (i = 0; i <= RANK_SLAB-1; i++) actReqs[i] = 4'b0;
+   for (i = 0; i <= RANK_SLAB-1; i++) actReqs[i] = 8'b0;
    if (actReq[0]) actReqs[cmdRank[RKBITS*1-1:RKBITS*0]][0] = 1'b1;
    if (actReq[1]) actReqs[cmdRank[RKBITS*2-1:RKBITS*1]][1] = 1'b1;
    if (actReq[2]) actReqs[cmdRank[RKBITS*3-1:RKBITS*2]][2] = 1'b1;
    if (actReq[3]) actReqs[cmdRank[RKBITS*4-1:RKBITS*3]][3] = 1'b1;
+   if (actReq[4]) actReqs[cmdRank[RKBITS*5-1:RKBITS*4]][4] = 1'b1;
+   if (actReq[5]) actReqs[cmdRank[RKBITS*6-1:RKBITS*5]][5] = 1'b1;
+   if (actReq[6]) actReqs[cmdRank[RKBITS*7-1:RKBITS*6]][6] = 1'b1;
+   if (actReq[7]) actReqs[cmdRank[RKBITS*8-1:RKBITS*7]][7] = 1'b1;
 end
 
 always @(*) begin
    casez (act_winPort_nxt)
-     4'bzzz1: begin
+     8'bzzzzzzz1: begin
         winLRank_nxt = cmdLRank[0*LR_WIDTH+:LR_WIDTH];
      end
-     4'bzz1z: begin
+     8'bzzzzzz1z: begin
         winLRank_nxt = cmdLRank[1*LR_WIDTH+:LR_WIDTH];
      end
-     4'bz1zz: begin
+     8'bzzzzz1zz: begin
         winLRank_nxt = cmdLRank[2*LR_WIDTH+:LR_WIDTH];
      end
-     4'b1zzz: begin
+     8'bzzzz1zzz: begin
         winLRank_nxt = cmdLRank[3*LR_WIDTH+:LR_WIDTH];
+     end
+     8'bzzz1zzzz: begin
+        winLRank_nxt = cmdLRank[4*LR_WIDTH+:LR_WIDTH];
+     end
+     8'bzz1zzzzz: begin
+        winLRank_nxt = cmdLRank[5*LR_WIDTH+:LR_WIDTH];
+     end
+     8'bz1zzzzzz: begin
+        winLRank_nxt = cmdLRank[6*LR_WIDTH+:LR_WIDTH];
+     end
+     8'b1zzzzzzz: begin
+        winLRank_nxt = cmdLRank[7*LR_WIDTH+:LR_WIDTH];
      end
      default: begin
         winLRank_nxt = '0;
@@ -157,33 +175,8 @@ always @(*) begin
    update = {RANK_SLAB{1'b0}};
    winGr = 2'b0;
    winGr2 = 2'b0;
-   casez (winPort)
-      4'b0001: begin
-         update[winRank] = 1'b1;
-         winGr = 2'd0;
-         winGr2 = 2'd1;
-      end
-      4'b0010: begin
-         update[winRank] = 1'b1;
-         winGr = 2'd1;
-         winGr2 = 2'd0;
-      end
-      4'b0100: begin
-         update[winRank] = 1'b1;
-         winGr = 2'd2;
-         winGr2 = 2'd3;
-      end
-      4'b1000: begin
-         update[winRank] = 1'b1;
-         winGr = 2'd3;
-         winGr2 = 2'd2;
-      end
-      default: begin
-         update = {RANK_SLAB{1'b0}};
-         winGr  = 2'b0;
-         winGr2 = 2'b0;
-      end
-   endcase
+   if(winPort)
+      update[winRank] = 1'b1;
 end
 
 genvar r;

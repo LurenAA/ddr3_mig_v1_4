@@ -80,17 +80,17 @@ module ddr3_v1_4_16_mc_act_rank #(parameter
    ,input rst
 
    ,output           fawOK
-   ,output reg [3:0] rrdOK
+   ,output reg [7:0] rrdOK
    
-   ,input [3:0] actReq
+   ,input [7:0] actReq
    ,input       update
    ,input [LR_WIDTH-1:0] winLRank_nxt
    ,input       act_rank_update
-   ,input [4*LR_WIDTH-1:0] cmdLRank
+   ,input [8*LR_WIDTH-1:0] cmdLRank
    ,input [1:0] winGr
    ,input [1:0] winGr2
    ,input [LR_WIDTH-1:0] winLRank
-   ,input [3:0] winPort
+   ,input [7:0] winPort
 );
 
 localparam
@@ -182,8 +182,8 @@ endgenerate
 
 // tRRD conformance check
   
-reg [1:0] rrdS[0:3];
-reg [1:0] rrdL[0:3];
+reg [1:0] rrdS[0:7];
+reg [1:0] rrdL[0:7];
 reg [1:0] rrdDLR;
 reg [LR_WIDTH-1:0] prevLRA;
 
@@ -199,7 +199,7 @@ endgenerate
 always @(posedge clk) if (rst) begin
    prevLRA <= 'b0;
    rrdDLR <= 'b0;
-   for (i = 0; i <= 3; i++) begin
+   for (i = 0; i <= 7; i++) begin
       rrdS[i] <= 'b0;
       rrdL[i] <= 'b0;
    end
@@ -210,7 +210,7 @@ end else begin
    else if (rrdDLR)
      rrdDLR <= #TCQ rrdDLR - 1'b1;
 
-   for (i = 0; i <= 3; i++) begin
+   for (i = 0; i <= 7; i++) begin
       if (rrdS[i]) rrdS[i] <= #TCQ rrdS[i] - 1'b1;
       if (rrdL[i]) rrdL[i] <= #TCQ rrdL[i] - 1'b1;
       if (update)  rrdS[i] <= #TCQ S_pipe;         // spyglass disable W164c // load tRRD_S restriction to all Groups when any Activate issues to memory
@@ -223,10 +223,10 @@ end else begin
    end
 end
 
-reg [3:0] act_dlr;
+reg [7:0] act_dlr;
 
 always @(*) begin
-  for (j = 0; j <= 3; j++)
+  for (j = 0; j <= 7; j++)
     act_dlr[j] = (S_HEIGHT > 1 & update) ? winLRank != cmdLRank[j*LR_WIDTH+:LR_WIDTH] : 
                  (S_HEIGHT > 1) ? prevLRA != cmdLRank[j*LR_WIDTH+:LR_WIDTH] : 
                  1'b0;
@@ -264,6 +264,19 @@ always @(*) begin
               & ( ( rrdS[2]==0 & rrdL[2]==0 ) | ( TWO_GROUP_DDR4 == "FALSE" ) )
               & (   ~( update              ) | ( S==0 & ~act_dlr[3] )   | ( act_dlr[3] & (RRD_dlr == 0) )  )
               & ( ( ~( update & winPort[2] ) | ( L==0 ) ) | ( TWO_GROUP_DDR4 == "FALSE" ) );
+
+  rrdOK[4] = actReq[4]
+              & ( ( rrdS[4]==0 & rrdL[4]==0 & ~act_dlr[4] ) | ( rrdDLR_zero & act_dlr[4] ) )
+              & (   ~( update              ) | ( S==0 & ~act_dlr[4] )   | ( act_dlr[4] & (RRD_dlr == 0) )  );
+  rrdOK[5] = actReq[5]
+              & ( ( rrdS[5]==0 & rrdL[5]==0 & ~act_dlr[5] ) | ( rrdDLR_zero & act_dlr[5] ) )
+              & (   ~( update              ) | ( S==0 & ~act_dlr[5] )   | ( act_dlr[5] & (RRD_dlr == 0) )  );
+  rrdOK[6] = actReq[6]
+              & ( ( rrdS[6]==0 & rrdL[6]==0 & ~act_dlr[6] ) | ( rrdDLR_zero & act_dlr[6] ) )
+              & (   ~( update              ) | ( S==0 & ~act_dlr[6] )   | ( act_dlr[6] & (RRD_dlr == 0) )  );
+  rrdOK[7] = actReq[7]
+              & ( ( rrdS[7]==0 & rrdL[7]==0 & ~act_dlr[7] ) | ( rrdDLR_zero & act_dlr[7] ) )
+              & (   ~( update              ) | ( S==0 & ~act_dlr[7] )   | ( act_dlr[7] & (RRD_dlr == 0) )  );
 end
 
 //synopsys translate_off

@@ -87,7 +87,7 @@ module ddr3_v1_4_16_mc_group # (parameter
    ,input            rst
 
    ,input            calDone
-   ,input      [1:0] id
+   ,input      [2:0] id
    ,input      [1:0] group_fsm_select
 
    ,output            accept_ns
@@ -400,7 +400,7 @@ wire [TXN_FIFO_WIDTH-1:0] txn_out_or_per; // Best performance. PER_RD_PERF = 1.
 wire [TXN_FIFO_WIDTH-1:0] txn_inp_or_per; // Best timing.      PER_RD_PERF = 0.
  
 // Txn fifo input assignments for both performance and timing options
-wire fsm_not_target = ~( group_fsm_select == id );
+wire fsm_not_target = ~( {group[0], bank} == id );
 assign txn_out_or_per[ PER_RD_FIELD : CMD_LSB  ] = select_periodic_read_nxt ? periodic_read_address[ PER_RD_FIELD : CMD_LSB  ] : { 1'b0, ap, cmd };
 assign txn_inp_or_per[ PER_RD_FIELD : CMD_LSB  ] = select_periodic_read_nxt ? { 1'b1, 1'b0, NATRD }                            : { 1'b0, ap, cmd };
 generate
@@ -430,7 +430,7 @@ end
 
 // Issue accept_ns to the UI when the FIFO is not full and the group_fsm_select is a match
 wire txn_fifo_full_nxt  = (txn_fifo_wptr - txn_fifo_rptr) >= TXN_FIFO_FULL_THRESHOLD[TXN_FIFO_PWIDTH-1:0];
-wire txn_fifo_accept_ns = ~txn_fifo_full_nxt & ( group_fsm_select == id ) & calDone;
+wire txn_fifo_accept_ns = ~txn_fifo_full_nxt & ( {group[0], bank} == id ) & calDone;
 assign accept_ns        = txn_fifo_accept_ns & ~periodic_read_or_ref_block;
 
 // Increment the txn rptr on issue_cas or with a one cycle pipeline to improve timing.
@@ -596,7 +596,7 @@ always @(*) begin
          gr_fsm_idle = 1'b1;
          if (ref_req_dly4) begin
          end else begin
-            if (calDone && ( ( group_fsm_select == id ) | ~txn_fifo_empty ) ) begin
+            if (calDone && ( ( {group[0], bank} == id ) | ~txn_fifo_empty ) ) begin
                grSt_nxt = grACCEPT;
             end
          end

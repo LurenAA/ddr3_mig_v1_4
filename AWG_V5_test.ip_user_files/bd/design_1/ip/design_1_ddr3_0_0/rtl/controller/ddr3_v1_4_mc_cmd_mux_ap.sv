@@ -77,42 +77,70 @@ module ddr3_v1_4_16_mc_cmd_mux_ap # (parameter
    ,output reg   [RKBITS-1:0] winRank
    ,output reg [ABITS-1:0] winRow
 
-   ,input         [3:0] sel
-   ,input         [7:0] cmdBank
-   ,input         [7:0] cmdGroup
-   ,input [4*LR_WIDTH-1:0] cmdLRank
-   ,input   [RKBITS*4-1:0] cmdRank
-   ,input [4*ABITS-1:0] cmdRow
+   ,input         [7:0] sel
+   ,input         [16 - 1:0] cmdBank
+   ,input         [16 - 1:0] cmdGroup
+   ,input [8*LR_WIDTH-1:0] cmdLRank
+   ,input   [RKBITS*8-1:0] cmdRank
+   ,input [8*ABITS-1:0] cmdRow
 );
 
 always @(*) casez (sel)
-   4'bzzz1: begin
+   8'bzzzzzzz1: begin
       winBank = cmdBank[1:0];
       winGroup = cmdGroup[1:0];
       winLRank = cmdLRank[0*LR_WIDTH+:LR_WIDTH];
       winRank = cmdRank[RKBITS*1-1:RKBITS*0];
       winRow = cmdRow[0*ABITS+:ABITS];
    end
-   4'bzz1z: begin
+   8'bzzzzzz1z: begin
       winBank = cmdBank[3:2];
       winGroup = cmdGroup[3:2];
       winLRank = cmdLRank[1*LR_WIDTH+:LR_WIDTH];
       winRank = cmdRank[RKBITS*2-1:RKBITS*1];
       winRow = cmdRow[1*ABITS+:ABITS];
    end
-   4'bz1zz: begin
+   8'bzzzzz1zz: begin
       winBank = cmdBank[5:4];
       winGroup = cmdGroup[5:4];
       winLRank = cmdLRank[2*LR_WIDTH+:LR_WIDTH];
       winRank = cmdRank[RKBITS*3-1:RKBITS*2];
       winRow = cmdRow[2*ABITS+:ABITS];
    end
-   4'b1zzz: begin
+   8'bzzzz1zzz: begin
       winBank = cmdBank[7:6];
       winGroup = cmdGroup[7:6];
       winLRank = cmdLRank[3*LR_WIDTH+:LR_WIDTH];
       winRank = cmdRank[RKBITS*4-1:RKBITS*3];
       winRow = cmdRow[3*ABITS+:ABITS];
+   end
+   8'bzzz1zzzz: begin
+      winBank = cmdBank[9:8];
+      winGroup = cmdGroup[9:8];
+      winLRank = cmdLRank[4*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[RKBITS*5-1:RKBITS*4];
+      winRow = cmdRow[4*ABITS+:ABITS];
+   end
+   8'bzz1zzzzz: begin
+      winBank = cmdBank[11:10];
+      winGroup = cmdGroup[11:10];
+      winLRank = cmdLRank[5*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[RKBITS*6-1:RKBITS*5];
+      winRow = cmdRow[5*ABITS+:ABITS];
+   end
+   8'bz1zzzzzz: begin
+      winBank = cmdBank[13:12];
+      winGroup = cmdGroup[13:12];
+      winLRank = cmdLRank[6*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[RKBITS*7-1:RKBITS*6];
+      winRow = cmdRow[6*ABITS+:ABITS];
+   end
+   8'b1zzzzzzz: begin
+      winBank = cmdBank[15:14];
+      winGroup = cmdGroup[15:14];
+      winLRank = cmdLRank[7*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[RKBITS*8-1:RKBITS*7];
+      winRow = cmdRow[7*ABITS+:ABITS];
    end
    default: begin
       winBank = 'x;

@@ -70,9 +70,9 @@ module ddr3_v1_4_16_mc_arb_p #(parameter TCQ = 0.1
     input        clk
    ,input        rst
 
-   ,output reg [3:0] winPort
+   ,output reg [7:0] winPort
 
-   ,input  [3:0] req
+   ,input  [7:0] req
 );
 
 function [1:0] findWin;
@@ -87,15 +87,23 @@ endcase
 endfunction
 
 // regs
-reg       last;
 reg       last10;
 reg       last32;
+reg       last54;
+reg       last76;
+reg       last3210;
+reg       last7654;
+reg       last;
 
 // wire-regs
-reg [1:0] winner;
 reg [1:0] w10;
 reg [1:0] w32;
-reg [3:0] win3210;
+reg [1:0] w54;
+reg [1:0] w76;
+reg [1:0] win3210;
+reg [1:0] win7654;
+reg [1:0] winner;
+reg [7:0] win76543210;
 
 reg [3:0] lastWinPort; 
 reg [3:0] winSequentialAccess;
@@ -103,17 +111,23 @@ reg [3:0] winPortSequentialExtTmp;
 
 always @(*) begin
    winPortSequentialExtTmp = (lastWinPort << 1);
-   winSequentialAccess = !lastWinPort ? 4'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 4'b1 ;
+   winSequentialAccess = !lastWinPort ? 8'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 8'b1 ;
    if(winSequentialAccess & req) 
-        win3210 = winSequentialAccess;
+       win76543210 = winSequentialAccess;
    else begin
        w10 = findWin(last10, req[1:0]);
        w32 = findWin(last32, req[3:2]);
-       winner = findWin(last, {|req[3:2], |req[1:0]});
-       casez (winner)
-          2'b01:   win3210 = {2'b00, w10};
-          2'b10:   win3210 = {w32, 2'b00};
-          default: win3210 = 4'b0000;
+       w54 = findWin(last54, req[5:4]);
+       w76 = findWin(last76, req[7:6]);
+       win3210 = findWin(last3210, {|req[3:2], |req[1:0]});
+       win7654 = findWin(last7654, {|req[7:6], |req[5:4]});
+       winner = findWin(last, {|req[7:4], |req[3:0]});
+       casez({winner, win7654, win3210})
+            6'b1010zz:  win76543210 = {w76, 6'b000000};
+            6'b1001zz:  win76543210 = {2'b00, w54, 4'b0000};
+            6'b01zz10:  win76543210 = {4'b0000, w32, 2'b00};
+            6'b01zz01:  win76543210 = {6'b000000 , w10};
+            default:    win76543210 = 8'b00000000; 
        endcase
     end
 end
@@ -122,34 +136,71 @@ always @(posedge clk) if (rst) begin
    last <= 1'b0;
    last10 <= 1'b0;
    last32 <= 1'b0;
-   winPort <= 4'b0;
+   last54 <= 1'b0;
+   last76 <= 1'b0;
+   last3210 <= 1'b0;
+   last7654 <= 1'b0;
+   
+   winPort <= 8'b0;
 end else begin:arbing
-   casez (win3210)
-      4'bzzz1: begin
+   casez (win76543210)
+      8'bzzzzzzz1: begin
          last <= #TCQ 1'b0;
+         last3210 <= #TCQ 1'b0;
          last10 <= #TCQ 1'b0;
-         winPort <= #TCQ win3210;
-         lastWinPort <= #TCQ win3210;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
       end
-      4'bzz1z: begin
+      8'bzzzzzz1z: begin
          last <= #TCQ 1'b0;
+         last3210 <= #TCQ 1'b0;
          last10 <= #TCQ 1'b1;
-         winPort <= #TCQ win3210;
-         lastWinPort <= #TCQ win3210;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
       end
-      4'bz1zz: begin
-         last <= #TCQ 1'b1;
+      8'bzzzzz1zz: begin
+         last <= #TCQ 1'b0;
+         last3210 <= #TCQ 1'b1;
          last32 <= #TCQ 1'b0;
-         winPort <= #TCQ win3210;
-         lastWinPort <= #TCQ win3210;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
       end
-      4'b1zzz: begin
-         last <= #TCQ 1'b1;
+      8'bzzzz1zzz: begin
+         last <= #TCQ 1'b0;
+         last3210 <= #TCQ 1'b1;
          last32 <= #TCQ 1'b1;
-         winPort <= #TCQ win3210;
-         lastWinPort <= #TCQ win3210;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
       end
-      default: winPort <= #TCQ 4'b0000;
+      8'bzzz1zzzz: begin
+         last <= #TCQ 1'b1;
+         last7654 <= #TCQ 1'b0;
+         last54 <= #TCQ 1'b0;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
+      end
+      8'bzz1zzzzz: begin
+         last <= #TCQ 1'b1;
+         last7654 <= #TCQ 1'b0;
+         last54 <= #TCQ 1'b1;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
+      end
+      8'bz1zzzzzz: begin
+         last <= #TCQ 1'b1;
+         last7654 <= #TCQ 1'b1;
+         last76 <= #TCQ 1'b0;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
+      end
+      8'b1zzzzzzz: begin
+         last <= #TCQ 1'b1;
+         last7654 <= #TCQ 1'b1;
+         last76 <= #TCQ 1'b1;
+         winPort <= #TCQ win76543210;
+         lastWinPort <= #TCQ win76543210;
+      end
+      default: winPort <= #TCQ 8'b00000000;
    endcase
 end
 

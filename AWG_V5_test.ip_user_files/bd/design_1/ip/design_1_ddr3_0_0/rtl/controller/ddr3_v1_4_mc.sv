@@ -241,27 +241,27 @@ wire  [3:0] tRASF;
 wire  [1:0] ba;
 wire  [1:0] bagr;
 wire  [1:0] group_fsm_select;
-wire  [3:0] cmdAP;
-wire  [3:0] grAccept;
-wire  [3:0] grAccept_ns;
+wire  [7:0] cmdAP;
+wire  [7:0] grAccept;
+wire  [7:0] grAccept_ns;
 wire        preIss;
 wire        readMode;
 wire        refIss;
 wire        zqIss;
 wire        zqIssAll;
-wire  [3:0] txn_fifo_full;
-wire  [3:0] cas_fifo_full;
-wire  [3:0] refOK;
+wire  [7:0] txn_fifo_full;
+wire  [7:0] cas_fifo_full;
+wire  [7:0] refOK;
 wire  [RKBITS-1:0] refRank;
 wire        refReq;
-wire  [3:0] actReq;
-wire  [3:0] actReqT;
-wire  [3:0] preReq;
-wire  [3:0] preReqM;
-wire  [3:0] rdReq;
-wire  [3:0] rdReqT;
-wire  [3:0] wrReq;
-wire  [3:0] wrReqT;
+wire  [7:0] actReq;
+wire  [7:0] actReqT;
+wire  [7:0] preReq;
+wire  [7:0] preReqM;
+wire  [7:0] rdReq;
+wire  [7:0] rdReqT;
+wire  [7:0] wrReq;
+wire  [7:0] wrReqT;
 wire  [1:0] winGroupA;
 wire  [1:0] winGroupC;
 wire  [1:0] winGroupP;
@@ -274,39 +274,39 @@ wire  [RKBITS-1:0] winRankP;
 wire        winAP;
 wire        winSize;
 wire        winAct;
-wire  [3:0] winPortA;
+wire  [7:0] winPortA;
 wire  [1:0] winPortEncC;
 wire  [RANK_SLAB-1:0] act_rank_update;
-wire  [3:0] act_winPort_nxt;
+wire  [7:0] act_winPort_nxt;
 wire  [1:0] win_bank_cas;
 wire  [1:0] win_group_cas;
-wire  [3:0] winPortC;
-wire  [3:0] winPortP;
+wire  [7:0] winPortC;
+wire  [7:0] winPortP;
 wire        winRead;
 wire        winWrite;
-wire  [7:0] cmd_bank_cas;
-wire  [7:0] cmdBank;
-wire  [7:0] cmdBankP;
-wire  [3:0] cmdHiPri;
-wire  [7:0] cmd_group_cas;
-wire  [7:0] cmdGroup;
-wire  [7:0] cmdGroupP;
-wire  [RKBITS*4-1:0] cmd_rank_cas;
-wire  [RKBITS*4-1:0] cmdRank;
-wire  [RKBITS*4-1:0] cmdRankP;
-wire  [3:0] cmdSize;
+wire  [15:0] cmd_bank_cas;
+wire  [15:0] cmdBank;
+wire  [15:0] cmdBankP;
+wire  [7:0] cmdHiPri;
+wire  [15:0] cmd_group_cas;
+wire  [15:0] cmdGroup;
+wire  [15:0] cmdGroupP;
+wire  [RKBITS*8-1:0] cmd_rank_cas;
+wire  [RKBITS*8-1:0] cmdRank;
+wire  [RKBITS*8-1:0] cmdRankP;
+wire  [7:0] cmdSize;
 wire  [1:0] winBankA;
 wire  [1:0] winBankC;
 wire  [1:0] winBankP;
 wire     [ABITS-1:0] winRowA;
-wire    [DBAW*4-1:0] cmdBuf;
+wire    [DBAW*8-1:0] cmdBuf;
 wire   [COLBITS-1:0] winCol;
-wire   [4*ABITS-1:0] cmdRow;
-wire   [4*ABITS-1:0] cmd_row_cas;
-wire [4*COLBITS-1:0] cmdCol;
-wire [4*LR_WIDTH-1:0] cmdLRank;
-wire [4*LR_WIDTH-1:0] cmdLRankP;
-wire [4*LR_WIDTH-1:0] cmd_l_rank_cas;
+wire   [8*ABITS-1:0] cmdRow;
+wire   [8*ABITS-1:0] cmd_row_cas;
+wire [8*COLBITS-1:0] cmdCol;
+wire [8*LR_WIDTH-1:0] cmdLRank;
+wire [8*LR_WIDTH-1:0] cmdLRankP;
+wire [8*LR_WIDTH-1:0] cmd_l_rank_cas;
 wire [LR_WIDTH-1:0]  win_l_rank_cas;
 wire [LR_WIDTH-1:0]  winLRankC;
 wire [LR_WIDTH-1:0]  winLRankA;
@@ -316,19 +316,19 @@ wire [LR_WIDTH-1:0]  refLRank;
 // Periodic reads
 wire                 per_block_ref;           // Periodic module blocking refresh
 wire                 per_rd_req;
-wire [3:0]           per_rd_req_vec;
+wire [7:0]           per_rd_req_vec;
 wire                 per_cas_block_req;
    // spyglass disable_block W498
-wire [3:0]           per_rd_accept;
+wire [7:0]           per_rd_accept;
    // spyglass enable_block W498
-wire [3:0]           cmdInjTxn;
-wire [3:0]           cmdRmw;
+wire [7:0]           cmdInjTxn;
+wire [7:0]           cmdRmw;
 
 wire [LR_WIDTH-1:0] l_rank;
    
 // Added for IBM Self Refresh. Denote MC does not have outstanding transaction in txn fifo nor cas fifo
-wire [3:0] txn_fifo_empty;
-wire [3:0] cas_fifo_empty;
+wire [7:0] txn_fifo_empty;
+wire [7:0] cas_fifo_empty;
 wire       int_sreIss;
 wire [RANKS-1:0] int_sreCkeDis;
 wire 	  int_srxIss;
@@ -383,7 +383,7 @@ endgenerate
 
 genvar bg;
 generate
-   for (bg = 0; bg <= 3; bg = bg + 1) begin:bgr
+   for (bg = 0; bg <= 7; bg = bg + 1) begin:bgr
       assign per_rd_req_vec[bg] = per_rd_req & (bg == 0); // Only inject periodic read into Group 0 FSM
       ddr3_v1_4_16_mc_group #(
           .ABITS   (ABITS)
@@ -407,7 +407,7 @@ generate
          ,.rst      (rst)
 
          ,.calDone  (calDone)
-         ,.id       (bg[1:0])
+         ,.id       (bg)
          ,.group_fsm_select (group_fsm_select)
 
          ,.accept   (grAccept[bg])
@@ -597,7 +597,7 @@ ddr3_v1_4_16_mc_arb_c #(
    ,.cmd_rank_cas   (cmd_rank_cas)
    ,.cmdRank  (cmdRank)
    ,.cmdRankP (cmdRankP)
-   ,.preReqM  (4'b0)
+   ,.preReqM  (8'b0)
 );
 
 ddr3_v1_4_16_mc_arb_mux_p #(

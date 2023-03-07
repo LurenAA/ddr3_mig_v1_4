@@ -83,22 +83,22 @@ module ddr3_v1_4_16_mc_cmd_mux_c # (parameter
    ,output reg  [RKBITS-1:0] winRank
    ,output reg               winSize
 
-   ,input           [7:0] cmdBank
-   ,input    [DBAW*4-1:0] cmdBuf
-   ,input           [3:0] cmdInjTxn
-   ,input           [3:0] cmdRmw
-   ,input           [3:0] cmdAP
-   ,input [4*COLBITS-1:0] cmdCol // spyglass disable W498
-   ,input           [7:0] cmdGroup
-   ,input [4*LR_WIDTH-1:0]cmdLRank
-   ,input  [RKBITS*4-1:0] cmdRank
-   ,input           [3:0] cmdSize
+   ,input           [15:0] cmdBank
+   ,input    [DBAW*8-1:0] cmdBuf
+   ,input           [7:0] cmdInjTxn
+   ,input           [7:0] cmdRmw
+   ,input           [7:0] cmdAP
+   ,input [8*COLBITS-1:0] cmdCol // spyglass disable W498
+   ,input           [15:0] cmdGroup
+   ,input [8*LR_WIDTH-1:0]cmdLRank
+   ,input  [RKBITS*8-1:0] cmdRank
+   ,input           [7:0] cmdSize
 
-   ,input  [3:0] sel
+   ,input  [7:0] sel
 );
 
 always @(*) casez (sel)
-   4'bzzz1: begin
+   8'bzzzzzzz1: begin
       winBank = cmdBank[0*2+:2];
       winBuf = cmdBuf[0*DBAW+:DBAW];
       winInjTxn = cmdInjTxn[0];
@@ -110,7 +110,7 @@ always @(*) casez (sel)
       winRank = cmdRank[0*RKBITS+:RKBITS];
       winSize = cmdSize[0];
    end
-   4'bzz1z: begin
+   8'bzzzzzz1z: begin
       winBank = cmdBank[1*2+:2];
       winBuf = cmdBuf[1*DBAW+:DBAW];
       winInjTxn = cmdInjTxn[1];
@@ -122,7 +122,7 @@ always @(*) casez (sel)
       winRank = cmdRank[1*RKBITS+:RKBITS];
       winSize = cmdSize[1];
    end
-   4'bz1zz: begin
+   8'bzzzzz1zz: begin
       winBank = cmdBank[2*2+:2];
       winBuf = cmdBuf[2*DBAW+:DBAW];
       winInjTxn = cmdInjTxn[2];
@@ -134,7 +134,7 @@ always @(*) casez (sel)
       winRank = cmdRank[2*RKBITS+:RKBITS];
       winSize = cmdSize[2];
    end
-   4'b1zzz: begin
+   8'bzzzz1zzz: begin
       winBank = cmdBank[3*2+:2];
       winBuf = cmdBuf[3*DBAW+:DBAW];
       winInjTxn = cmdInjTxn[3];
@@ -145,6 +145,54 @@ always @(*) casez (sel)
       winLRank = cmdLRank[3*LR_WIDTH+:LR_WIDTH];
       winRank = cmdRank[3*RKBITS+:RKBITS];
       winSize = cmdSize[3];
+   end
+   8'bzzz1zzzz: begin
+      winBank = cmdBank[4*2+:2];
+      winBuf = cmdBuf[4*DBAW+:DBAW];
+      winInjTxn = cmdInjTxn[4];
+      winRmw    = cmdRmw[4];
+      winAP = cmdAP[4] & ~cmdRmw[4];
+      winCol = {cmdCol[(4*COLBITS+3)+:COLBITS-3], cmdSize[4] ? 1'b0 : cmdCol[4*COLBITS+2], 1'b0, cmdInjTxn[4]};
+      winGroup = cmdGroup[4*2+:2];
+      winLRank = cmdLRank[4*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[4*RKBITS+:RKBITS];
+      winSize = cmdSize[4];
+   end
+   8'bzz1zzzzz: begin
+      winBank = cmdBank[5*2+:2];
+      winBuf = cmdBuf[5*DBAW+:DBAW];
+      winInjTxn = cmdInjTxn[5];
+      winRmw    = cmdRmw[5];
+      winAP = cmdAP[5] & ~cmdRmw[5];
+      winCol = {cmdCol[(5*COLBITS+3)+:COLBITS-3], cmdSize[5] ? 1'b0 : cmdCol[5*COLBITS+2], 1'b0, cmdInjTxn[5]};
+      winGroup = cmdGroup[5*2+:2];
+      winLRank = cmdLRank[5*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[5*RKBITS+:RKBITS];
+      winSize = cmdSize[5];
+   end
+   8'bz1zzzzzz: begin
+      winBank = cmdBank[6*2+:2];
+      winBuf = cmdBuf[6*DBAW+:DBAW];
+      winInjTxn = cmdInjTxn[6];
+      winRmw    = cmdRmw[6];
+      winAP = cmdAP[6] & ~cmdRmw[6];
+      winCol = {cmdCol[(6*COLBITS+3)+:COLBITS-3], cmdSize[6] ? 1'b0 : cmdCol[6*COLBITS+2], 1'b0, cmdInjTxn[6]};
+      winGroup = cmdGroup[6*2+:2];
+      winLRank = cmdLRank[6*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[6*RKBITS+:RKBITS];
+      winSize = cmdSize[6];
+   end
+   8'b1zzzzzzz: begin
+      winBank = cmdBank[7*2+:2];
+      winBuf = cmdBuf[7*DBAW+:DBAW];
+      winInjTxn = cmdInjTxn[7];
+      winRmw    = cmdRmw[7];
+      winAP = cmdAP[7] & ~cmdRmw[7];
+      winCol = {cmdCol[(7*COLBITS+3)+:COLBITS-3], cmdSize[7] ? 1'b0 : cmdCol[7*COLBITS+2], 1'b0, cmdInjTxn[7]};
+      winGroup = cmdGroup[7*2+:2];
+      winLRank = cmdLRank[7*LR_WIDTH+:LR_WIDTH];
+      winRank = cmdRank[7*RKBITS+:RKBITS];
+      winSize = cmdSize[7];
    end
    default: begin
       winBank = 'x;

@@ -130,8 +130,8 @@ module ddr3_v1_4_16_mc_ctl #(parameter
    ,input               winAP
    ,input [COLBITS-1:0] winCol
    ,input               winAct
-   ,input         [3:0] winPortC
-   ,input         [3:0] winPortP
+   ,input         [7:0] winPortC
+   ,input         [7:0] winPortP
    ,input  [RKBITS-1:0] winRankA
    ,input  [RKBITS-1:0] win_rank_cas
    ,input  [RKBITS-1:0] winRankP
@@ -153,7 +153,6 @@ module ddr3_v1_4_16_mc_ctl #(parameter
    ,input  int_sreIss
    ,input [RANKS-1:0] int_sreCkeDis
    ,input int_srxIss
-   ,output reg [1:0] op_out
 );
 
 
@@ -458,7 +457,7 @@ always @(*) begin : blk
       d_mc_WE_n[3:2] = {2{op[14]}};
       d_mc_CS_nR[winRankA][3:2] = 2'b00;
    end
-   if (winPortP != 4'b0000) begin
+   if (winPortP != 8'b00000000) begin
       op = PRE;
       for (bn = 0; bn < ABITS; bn++) d_mc_ADRR[bn][7:6] = {2{1'b0}};
       if (MEM == "DDR4") begin
@@ -478,7 +477,6 @@ always @(*) begin : blk
       d_mc_CS_nR[winRankP][7:6] = 2'b00;
    end
 
-   op_out = op;
 end
 endgenerate
 

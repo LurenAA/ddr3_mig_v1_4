@@ -85,17 +85,17 @@ module ddr3_v1_4_16_mc_arb_mux_p #(parameter
    ,output [1:0] winBankP
    ,output [1:0] winGroupP
    ,output [LR_WIDTH-1:0] winLRankP
-   ,output [3:0] winPortP
+   ,output [8 - 1:0] winPortP
    ,output [RKBITS-1:0] winRankP
    ,output [3:0] tWTPF
    ,output [1:0] tRTPF
    ,output [3:0] tRASF
 
-   ,input [7:0] cmdBankP
-   ,input [7:0] cmdGroupP
-   ,input [4*LR_WIDTH-1:0] cmdLRankP
-   ,input [RKBITS*4-1:0] cmdRankP
-   ,input [3:0] preReq
+   ,input [8 * 2 - 1:0] cmdBankP
+   ,input [8 * 2 - 1:0] cmdGroupP
+   ,input [8 * LR_WIDTH-1:0] cmdLRankP
+   ,input [RKBITS*8-1:0] cmdRankP
+   ,input [8 - 1:0] preReq
    ,input [5:0] tCWL
    ,input [1:0] winBankC
    ,input [1:0] winGroupC
@@ -111,7 +111,7 @@ module ddr3_v1_4_16_mc_arb_mux_p #(parameter
    ,input [RKBITS-1:0] winRankA
    ,input       winAct
 
-   ,output reg [3:0] preReqM
+   ,output reg [8 - 1:0] preReqM
 );
 
 // These equations do not support additive latency.
@@ -127,7 +127,7 @@ integer i, j, k, l;
 
 wire [LR_WIDTH-1:0] winLRankC_3ds;
 wire [LR_WIDTH-1:0] winLRankA_3ds;
-wire [4*LR_WIDTH-1:0] cmdLRankP_3ds;
+wire [8*LR_WIDTH-1:0] cmdLRankP_3ds;
 
 localparam S_HEIGHT_ALIASED = (ALIAS_P_CNT == "ON") ? 1 : S_HEIGHT;
 
@@ -175,7 +175,7 @@ if (XTP_MODE == "RANK_GROUP_BANK") begin
                   if (timerRAS[i][j][k][l]) timerRAS[i][j][k][l] <= #TCQ timerRAS[i][j][k][l] - 4'b1;
                   pre_safe[i][j][k][l] <= #TCQ ( ( timerWTP[i][j][k][l] <= 4'd1 ) & ( timerRTP[i][j][k][l] <= 2'd1 ) & ( timerRAS[i][j][k][l] <= 4'd1 ) );
             end
-      // Do not qualify with tranSentC since we cannot arbitrate for the same
+      // Do not qualify with tranSentC since we cannot arbitrate for the samwinBankAe
       // Rank, Group, Bank on both a CAS and Precharge command in the same fabric cycle.
       // This will load the timer a cycle early if tranSentC de-asserts, but there will
       // be no functional effect.
@@ -188,6 +188,10 @@ if (XTP_MODE == "RANK_GROUP_BANK") begin
       preReqM[1] = preReq[1] & pre_safe[cmdRankP[RKBITS*2-1:RKBITS*1]][cmdLRankP_3ds[1*LR_WIDTH+:LR_WIDTH]][cmdGroupP[3:2]][cmdBankP[3:2]];
       preReqM[2] = preReq[2] & pre_safe[cmdRankP[RKBITS*3-1:RKBITS*2]][cmdLRankP_3ds[2*LR_WIDTH+:LR_WIDTH]][cmdGroupP[5:4]][cmdBankP[5:4]];
       preReqM[3] = preReq[3] & pre_safe[cmdRankP[RKBITS*4-1:RKBITS*3]][cmdLRankP_3ds[3*LR_WIDTH+:LR_WIDTH]][cmdGroupP[7:6]][cmdBankP[7:6]];
+      preReqM[4] = preReq[4] & pre_safe[cmdRankP[RKBITS*5-1:RKBITS*4]][cmdLRankP_3ds[4*LR_WIDTH+:LR_WIDTH]][cmdGroupP[9:8]][cmdBankP[9:8]];
+      preReqM[5] = preReq[5] & pre_safe[cmdRankP[RKBITS*6-1:RKBITS*5]][cmdLRankP_3ds[5*LR_WIDTH+:LR_WIDTH]][cmdGroupP[11:10]][cmdBankP[11:10]];
+      preReqM[6] = preReq[6] & pre_safe[cmdRankP[RKBITS*7-1:RKBITS*6]][cmdLRankP_3ds[6*LR_WIDTH+:LR_WIDTH]][cmdGroupP[13:12]][cmdBankP[13:12]];
+      preReqM[7] = preReq[7] & pre_safe[cmdRankP[RKBITS*8-1:RKBITS*7]][cmdLRankP_3ds[7*LR_WIDTH+:LR_WIDTH]][cmdGroupP[15:14]][cmdBankP[15:14]];
    end
 end else begin
 // ======================================================================
@@ -258,7 +262,7 @@ ddr3_v1_4_16_mc_cmd_mux_ap #(
    ,.cmdGroup (cmdGroupP)
    ,.cmdLRank (cmdLRankP)
    ,.cmdRank  (cmdRankP)
-   ,.cmdRow   ({ 4*ABITS { 1'b0 }})
+   ,.cmdRow   ({ 8*ABITS { 1'b0 }})
 
    ,.sel      (winPortP)
 );

@@ -99,7 +99,7 @@ module ddr3_v1_4_16_mc_ref #(parameter
    ,input            prevCmdAP
 
    ,input       calDone
-   ,input [3:0] refOK
+   ,input [7:0] refOK
    ,input [5:0] tCWL
    ,input       per_block_ref
    ,input       ref_req
@@ -108,8 +108,8 @@ module ddr3_v1_4_16_mc_ref #(parameter
    ,input       sre_req
    ,output reg  sre_ack
    ,input       ui_busy
-   ,input [3:0] txn_fifo_empty
-   ,input [3:0] cas_fifo_empty
+   ,input [7:0] txn_fifo_empty
+   ,input [7:0] cas_fifo_empty
    ,output      mc_block_req
    ,output      sreIss
    ,output      [RANKS-1:0] sreCkeDis
@@ -332,8 +332,8 @@ end
    // Added for IBM Self Refresh. Denote MC does not have outstanding transaction in txn fifo nor cas fifo
    reg      mc_busy; 
    reg      ui_busy_r;
-   reg [3:0] txn_fifo_empty_r;
-   reg [3:0] cas_fifo_empty_r;
+   reg [7:0] txn_fifo_empty_r;
+   reg [7:0] cas_fifo_empty_r;
    reg      sre_req_r;
    reg      sre_req_lpulse;
 
@@ -601,7 +601,7 @@ end else begin
          else
            cntr <= #TCQ tWRWAIT;
          retSt <= #TCQ stPRE;
-         if (refOK == 4'b1111) refSt <= #TCQ stTWDL;
+         if (refOK == 8'b11111111) refSt <= #TCQ stTWDL;
       end
       stPRE: begin
          if (nextLRank(int_refLRank) == 0) begin 
@@ -752,7 +752,7 @@ always @(*) begin
       end
     end
     UM_ACK_WAIT: begin
-      if (refOK == 4'b1111) begin
+      if (refOK == 8'b11111111) begin
         um_wait_cntr_start = 1'b1;
         um_wait_cntr_init  = tWRWAIT;
         user_fsm_nxt = UM_WR_WAIT;
