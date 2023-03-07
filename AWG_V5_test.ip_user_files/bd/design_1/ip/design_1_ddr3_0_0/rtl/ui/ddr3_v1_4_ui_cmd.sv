@@ -338,7 +338,8 @@ module ddr3_v1_4_16_ui_cmd #
       else if (MEM_ADDR_ORDER == "ROW_COLUMN_BANK" && MEM == "DDR3") begin
         assign col =  { app_addr_ns2[3+BANK_WIDTH+:COL_WIDTH-3], app_addr_ns2[2:0] } ;
         assign row =    app_addr_ns2[COL_WIDTH+BANK_WIDTH+:ROW_WIDTH] ;
-       assign bank = { app_addr_ns2[3+:BANK_WIDTH-1], app_addr_ns2[3+BANK_WIDTH-1+:1] } ;
+//        assign bank = { app_addr_ns2[3+:BANK_WIDTH-1], app_addr_ns2[3+BANK_WIDTH-1+:1] } ;
+        assign bank = app_addr_ns2[3+:BANK_WIDTH];
         if (RANKS == 1)
           assign rank = 'b0;
         else
