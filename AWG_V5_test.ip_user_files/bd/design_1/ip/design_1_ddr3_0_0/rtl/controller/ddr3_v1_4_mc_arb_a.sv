@@ -72,6 +72,7 @@ module ddr3_v1_4_16_mc_arb_a #(parameter
 )(
     input        clk
    ,input        rst
+   ,input  wire [7:0] strict_fifo_output
 
    ,output reg       winAct
    ,output reg [7:0] winPort
@@ -116,10 +117,16 @@ reg [7:0] lastWinPort;
 reg [7:0] winSequentialAccess;
 reg [7:0] winPortSequentialExtTmp;
 
+reg [7:0] counter1;
+
 always @(*) begin
    winPortSequentialExtTmp = (lastWinPort << 1);
    winSequentialAccess = !lastWinPort ? 8'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 8'b1 ;
-   if(winSequentialAccess & req) 
+   
+   if(counter1 > 5 && (strict_fifo_output & req) != 8'b0) begin
+      win76543210 = strict_fifo_output;
+   end
+   else if(winSequentialAccess & req) 
        win76543210 = winSequentialAccess;
    else begin
        w10 = findWin(last10, req[1:0]);
@@ -169,8 +176,10 @@ always @(posedge clk) if (rst) begin
    
    winPort <= 8'b0;
    winAct  <= 1'b0;
+   counter1 <= 8'b0;
 end else begin:arbing
    winAct  <= #TCQ winAct_nxt;
+   counter1 <= counter1 + 1;
    casez (win76543210)
       8'bzzzzzzz1: begin
          last <= #TCQ 1'b0;
@@ -178,6 +187,7 @@ end else begin:arbing
          last10 <= #TCQ 1'b0;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'bzzzzzz1z: begin
          last <= #TCQ 1'b0;
@@ -185,6 +195,7 @@ end else begin:arbing
          last10 <= #TCQ 1'b1;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'bzzzzz1zz: begin
          last <= #TCQ 1'b0;
@@ -192,6 +203,7 @@ end else begin:arbing
          last32 <= #TCQ 1'b0;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'bzzzz1zzz: begin
          last <= #TCQ 1'b0;
@@ -199,6 +211,7 @@ end else begin:arbing
          last32 <= #TCQ 1'b1;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'bzzz1zzzz: begin
          last <= #TCQ 1'b1;
@@ -206,6 +219,7 @@ end else begin:arbing
          last54 <= #TCQ 1'b0;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'bzz1zzzzz: begin
          last <= #TCQ 1'b1;
@@ -213,6 +227,7 @@ end else begin:arbing
          last54 <= #TCQ 1'b1;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'bz1zzzzzz: begin
          last <= #TCQ 1'b1;
@@ -220,6 +235,7 @@ end else begin:arbing
          last76 <= #TCQ 1'b0;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
       8'b1zzzzzzz: begin
          last <= #TCQ 1'b1;
@@ -227,8 +243,11 @@ end else begin:arbing
          last76 <= #TCQ 1'b1;
          winPort <= #TCQ win76543210;
          lastWinPort <= #TCQ win76543210;
+         counter1 <= 8'b0;
       end
-      default: winPort <= #TCQ 8'b00000000;
+      default: begin
+         winPort <= #TCQ 8'b00000000;
+      end
    endcase
 end
 

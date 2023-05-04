@@ -341,6 +341,8 @@ wire       dbg_mc_periodic_rst;
 
 (* keep = "TRUE" *) reg rst_r1;
 
+wire [7:0] strict_fifo_output;
+
 always @(posedge clk)
   rst_r1 <= rst;
 
@@ -525,6 +527,7 @@ ddr3_v1_4_16_mc_arb_a # (
 
    ,.cmdRank (cmdRank)
    ,.req     (actReqT)
+   ,.strict_fifo_output(strict_fifo_output)
 );
 
 ddr3_v1_4_16_mc_rd_wr #(
@@ -598,6 +601,7 @@ ddr3_v1_4_16_mc_arb_c #(
    ,.cmdRank  (cmdRank)
    ,.cmdRankP (cmdRankP)
    ,.preReqM  (8'b0)
+   ,.strict_fifo_output(strict_fifo_output)
 );
 
 ddr3_v1_4_16_mc_arb_mux_p #(
