@@ -123,26 +123,37 @@ always @(*) begin
    winPortSequentialExtTmp = (lastWinPort << 1);
    winSequentialAccess = !lastWinPort ? 8'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 8'b1 ;
    
-   if(counter1 > 5 && (strict_fifo_output & req) != 8'b0) begin
+   if( (strict_fifo_output & req) != 8'b0) begin
       win76543210 = strict_fifo_output;
    end
    else if(winSequentialAccess & req) 
        win76543210 = winSequentialAccess;
    else begin
-       w10 = findWin(last10, req[1:0]);
-       w32 = findWin(last32, req[3:2]);
-       w54 = findWin(last54, req[5:4]);
-       w76 = findWin(last76, req[7:6]);
-       win3210 = findWin(last3210, {|req[3:2], |req[1:0]});
-       win7654 = findWin(last7654, {|req[7:6], |req[5:4]});
-       winner = findWin(last, {|req[7:4], |req[3:0]});
-       casez({winner, win7654, win3210})
-            6'b1010zz:  win76543210 = {w76, 6'b000000};
-            6'b1001zz:  win76543210 = {2'b00, w54, 4'b0000};
-            6'b01zz10:  win76543210 = {4'b0000, w32, 2'b00};
-            6'b01zz01:  win76543210 = {6'b000000 , w10};
-            default:    win76543210 = 8'b00000000; 
-       endcase
+//       w10 = findWin(last10, req[1:0]);
+//       w32 = findWin(last32, req[3:2]);
+//       w54 = findWin(last54, req[5:4]);
+//       w76 = findWin(last76, req[7:6]);
+//       win3210 = findWin(last3210, {|req[3:2], |req[1:0]});
+//       win7654 = findWin(last7654, {|req[7:6], |req[5:4]});
+//       winner = findWin(last, {|req[7:4], |req[3:0]});
+//       casez({winner, win7654, win3210})
+//            6'b1010zz:  win76543210 = {w76, 6'b000000};
+//            6'b1001zz:  win76543210 = {2'b00, w54, 4'b0000};
+//            6'b01zz10:  win76543210 = {4'b0000, w32, 2'b00};
+//            6'b01zz01:  win76543210 = {6'b000000 , w10};
+//            default:    win76543210 = 8'b00000000; 
+//       endcase
+        casez(req)
+            8'bzzzzzzz1: win76543210 = 8'b00000001;
+            8'bzzzzzz1z: win76543210 = 8'b00000010;
+            8'bzzzzz1zz: win76543210 = 8'b00000100;
+            8'bzzzz1zzz: win76543210 = 8'b00001000;
+            8'bzzz1zzzz: win76543210 = 8'b00010000;
+            8'bzz1zzzzz: win76543210 = 8'b00100000;
+            8'bz1zzzzzz: win76543210 = 8'b01000000;
+            8'b1zzzzzzz: win76543210 = 8'b10000000;
+            default: win76543210 = 8'b00000000;
+        endcase
     end
 end
 
