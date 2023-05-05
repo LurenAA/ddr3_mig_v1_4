@@ -72,6 +72,7 @@ module ddr3_v1_4_16_mc_arb_a #(parameter
 )(
     input        clk
    ,input        rst
+   ,input wire [3:0] strict_fifo_output 
 
    ,output reg       winAct
    ,output reg [3:0] winPort
@@ -111,18 +112,31 @@ reg [3:0] winPortSequentialExtTmp;
 always @(*) begin
    winPortSequentialExtTmp = (lastWinPort << 1);
    winSequentialAccess = !lastWinPort ? 4'b0 : winPortSequentialExtTmp ? winPortSequentialExtTmp : 4'b1 ;
-   if(winSequentialAccess & req) 
-        win3210 = winSequentialAccess;
+  //  if(winSequentialAccess & req) 
+  //       win3210 = winSequentialAccess;
+  //  else begin
+  //      w10 = findWin(last10, req[1:0]);
+  //      w32 = findWin(last32, req[3:2]);
+  //      winner = findWin(last, {|req[3:2], |req[1:0]});
+  //      casez (winner)
+  //         2'b01:   win3210 = {2'b00, w10};
+  //         2'b10:   win3210 = {w32, 2'b00};
+  //         default: win3210 = 4'b0000;
+  //      endcase
+  //   end
+  if(strict_fifo_output & req) 
+      win3210 = strict_fifo_output;
+   else if(winSequentialAccess & req) 
+      win3210 = winSequentialAccess;
    else begin
-       w10 = findWin(last10, req[1:0]);
-       w32 = findWin(last32, req[3:2]);
-       winner = findWin(last, {|req[3:2], |req[1:0]});
-       casez (winner)
-          2'b01:   win3210 = {2'b00, w10};
-          2'b10:   win3210 = {w32, 2'b00};
-          default: win3210 = 4'b0000;
-       endcase
-    end
+      casez(req)
+        4'bzzz1: win3210 = 4'b0001;
+        4'bzz10: win3210 = 4'b0010;
+        4'bz100: win3210 = 4'b0100;
+        4'b1000: win3210 = 4'b1000;
+        default: win3210 = 4'b0000;
+      endcase
+   end
 end
 
 wire winAct_nxt = | req[3:0];

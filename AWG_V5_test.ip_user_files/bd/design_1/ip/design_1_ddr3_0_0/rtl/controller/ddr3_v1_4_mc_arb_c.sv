@@ -84,6 +84,7 @@ module ddr3_v1_4_16_mc_arb_c #(parameter
    ,output reg [1:0] win_group_cas
    ,output     [LR_WIDTH-1:0] win_l_rank_cas
    ,output reg [RKBITS-1:0] win_rank_cas
+   ,output wire [3:0] strict_fifo_output 
 
    ,input  [3:0] cmdRmw
    ,input  [3:0] read
@@ -168,7 +169,7 @@ end
 
 // Select strict arbitration winner based on order FIFO and available CAS requests.
 // Pop the order FIFO based on the winner unless it is an underfill read.
-wire [3:0] strict_fifo_output     = strict_fifo[ strict_rptr ];
+assign  strict_fifo_output     = strict_fifo[ strict_rptr ];
 assign     win3210_strict         = strict_fifo_output & ( readM | wrteM );
 assign     win3210_strict_rptr_en = ( strict_fifo_output & ~cmdRmw & readM ) | ( strict_fifo_output & wrteM );
 

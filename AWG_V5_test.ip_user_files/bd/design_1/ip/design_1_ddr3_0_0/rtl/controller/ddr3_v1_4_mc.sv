@@ -325,7 +325,8 @@ wire [3:0]           cmdInjTxn;
 wire [3:0]           cmdRmw;
 
 wire [LR_WIDTH-1:0] l_rank;
-   
+wire [3:0] strict_fifo_output;
+
 // Added for IBM Self Refresh. Denote MC does not have outstanding transaction in txn fifo nor cas fifo
 wire [3:0] txn_fifo_empty;
 wire [3:0] cas_fifo_empty;
@@ -525,6 +526,7 @@ ddr3_v1_4_16_mc_arb_a # (
 
    ,.cmdRank (cmdRank)
    ,.req     (actReqT)
+   ,.strict_fifo_output(strict_fifo_output)
 );
 
 ddr3_v1_4_16_mc_rd_wr #(
@@ -598,6 +600,7 @@ ddr3_v1_4_16_mc_arb_c #(
    ,.cmdRank  (cmdRank)
    ,.cmdRankP (cmdRankP)
    ,.preReqM  (4'b0)
+   ,.strict_fifo_output(strict_fifo_output)
 );
 
 ddr3_v1_4_16_mc_arb_mux_p #(
